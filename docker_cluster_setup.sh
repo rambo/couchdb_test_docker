@@ -1,9 +1,13 @@
 #!/bin/bash
-ADMINPW=foobar
-
+if [ -z "${ADMINPW}" ]
+then
+  ADMINPW=foobar
+fi
 echo " *** Setup network, initialize cluster node containers *** "
 docker network create couchdb_cluster
+docker network create fake_internet
 docker run -d --name cluster_couchdb1 --network couchdb_cluster -p 5984:5984 couchdb
+docker network connect fake_internet cluster_couchdb1
 docker run -d --name cluster_couchdb2 --network couchdb_cluster couchdb
 docker run -d --name cluster_couchdb3 --network couchdb_cluster couchdb
 NODES="cluster_couchdb1 cluster_couchdb2 cluster_couchdb3"
@@ -49,7 +53,6 @@ done
 
 docker exec -it $COORDNODE /usr/bin/curl -X POST -H "Content-Type: application/json" http://admin:$ADMINPW@127.0.0.1:5984/_cluster_setup -d '{"action": "finish_cluster"}'
 
-
 echo " *** Waiting a moment *** "
 sleep 5
 
@@ -61,6 +64,7 @@ do
   docker exec -it $NODENAME /usr/bin/curl http://admin:$ADMINPW@127.0.0.1:5984/_cluster_setup
   docker exec -it $NODENAME /usr/bin/curl http://admin:$ADMINPW@127.0.0.1:5984/_membership
 done
+
 
 echo ""
 echo "***********************************"
