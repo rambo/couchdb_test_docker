@@ -47,7 +47,7 @@ docker exec -it $CLUSTERCOORDNODE /usr/bin/curl -X PUT http://admin:$CLUSTERADMI
 NODEIP=`docker inspect -f '{{.NetworkSettings.Networks.fake_internet.IPAddress}}' $NODENAME`
 docker exec -it $NODENAME /usr/bin/curl -X PUT -H "Content-Type: application/json" http://admin:$CLIENTADMINPW@127.0.0.1:5984/vaplatformdata
 sleep 5 # TODO: smarter wait for the db to be created
-docker exec -it $CLUSTERCOORDNODE /usr/bin/curl -X POST http://admin:$CLUSTERADMINPW@127.0.0.1:5984/_replicator -H "Content-Type: application/json" -d '{ "_id": "'$CLIENTNAME'_vaplatform_downstream", "source": "http://'$CLIENTUSER':'$REPLICATORPW'@127.0.0.1:5984/vaplatformdata", "target": "http://replicator:'$REPLICATORPW'@'$NODEIP':5984/vaplatformdata", "selector": { "clientid": "'$CLIENTNAME'" }, "continuous":  true}'
+docker exec -it $NODENAME /usr/bin/curl -X POST http://admin:$CLIENTADMINPW@127.0.0.1:5984/_replicator -H "Content-Type: application/json" -d '{ "_id": "'$CLIENTNAME'_vaplatform_downstream", "source": "http://'$CLIENTUSER':'$REPLICATORPW'@'$CLUSTERCOORDNODEIP':5984/vaplatformdata", "target": "http://replicator:'$REPLICATORPW'@127.0.0.1:5984/vaplatformdata", "selector": { "clientid": "'$CLIENTNAME'" }, "continuous":  true}'
 docker exec -it $NODENAME /usr/bin/curl -X POST http://admin:$CLIENTADMINPW@127.0.0.1:5984/_replicator -H "Content-Type: application/json" -d '{ "_id": "'$CLIENTNAME'_vaplatform_upstream", "source": "http://replicator:'$REPLICATORPW'@127.0.0.1:5984/vaplatformdata", "target": "http://'$CLIENTUSER':'$REPLICATORPW'@'$CLUSTERCOORDNODEIP':5984/vaplatformdata", "selector": { "clientid": "'$CLIENTNAME'" }, "continuous":  true}'
 
 echo "*** Creating test document ****"

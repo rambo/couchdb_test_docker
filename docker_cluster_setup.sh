@@ -9,9 +9,7 @@ docker network create fake_internet
 docker run -d --name cluster_couchdb1 --network couchdb_cluster -p 5984:5984 couchdb
 docker network connect fake_internet cluster_couchdb1
 docker run -d --name cluster_couchdb2 --network couchdb_cluster couchdb
-docker network connect fake_internet cluster_couchdb2
 docker run -d --name cluster_couchdb3 --network couchdb_cluster couchdb
-docker network connect fake_internet cluster_couchdb3
 NODES="cluster_couchdb1 cluster_couchdb2 cluster_couchdb3"
 COORDNODE=cluster_couchdb1
 
