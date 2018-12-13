@@ -57,6 +57,7 @@ DOCID=`python3 -c "import uuid,base64;print(base64.urlsafe_b64encode(uuid.uuid4(
 TS=`python3 -c "import datetime; print(datetime.datetime.utcnow().isoformat()+'Z')"`
 docker exec -it $NODENAME /usr/bin/curl -X POST -H "Content-Type: application/json" http://admin:$CLIENTADMINPW@127.0.0.1:5984/vaplatformdata -d '{"_id": "'$DOCID'", "clientid": "'$CLIENTNAME'", "time": "'$TS'", "extra": "created by client local setup script"}'
 
-echo "*********** DONE **********''"
+echo "*********** $CLIENTNAME DONE **********''"
 echo "*** ACTION: On the cluster add user $CLIENTUSER as member to vaplatformdata"
 echo "*** $NODENAME admin pw is $CLIENTADMINPW replicator pw is $REPLICATORPW ***"
+echo "*** Fauxton: http://127.0.0.1:${CLIENTPORT}/_utils/" ***"
