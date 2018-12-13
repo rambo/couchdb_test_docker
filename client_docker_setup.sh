@@ -26,6 +26,7 @@ fi
 CLUSTERCOORDNODEIP=`docker inspect -f '{{.NetworkSettings.Networks.fake_internet.IPAddress}}' $CLUSTERCOORDNODE`
 
 
+CLIENTDB="${CLIENTNAME}_vaplatformdata"
 NODENAME="${CLIENTNAME}_couchdb"
 CLIENTUSER="${CLIENTNAME}_replicator"
 HTTP_SECRET=`python3 -c "import uuid,base64;print(base64.urlsafe_b64encode(uuid.uuid4().bytes+uuid.uuid4().bytes).decode('ascii'))"`
@@ -41,14 +42,15 @@ docker exec -it $NODENAME /usr/bin/curl -X PUT http://admin:$CLIENTADMINPW@127.0
 docker exec -it $NODENAME /usr/bin/curl -X POST -H "Content-Type: application/json" http://admin:$CLIENTADMINPW@127.0.0.1:5984/_cluster_setup -d '{"action": "finish_cluster"}'
 
 echo "*** Creating replication user and documents ****"
+docker exec -it $CLUSTERCOORDNODE /usr/bin/curl -X PUT -H "Content-Type: application/json" http://admin:$CLUSTERADMINPW@127.0.0.1:5984/$CLIENTDB
 docker exec -it $CLUSTERCOORDNODE /usr/bin/curl -X PUT http://admin:$CLUSTERADMINPW@127.0.0.1:5984/_users/org.couchdb.user:$CLIENTUSER -H "Content-Type: application/json" -d '{"name": "'$CLIENTUSER'", "password": "'$REPLICATORPW'", "roles": [], "type": "user"}'
 # TODO automate adding of the replicator user as member to the table
 
 NODEIP=`docker inspect -f '{{.NetworkSettings.Networks.fake_internet.IPAddress}}' $NODENAME`
 docker exec -it $NODENAME /usr/bin/curl -X PUT -H "Content-Type: application/json" http://admin:$CLIENTADMINPW@127.0.0.1:5984/vaplatformdata
 sleep 5 # TODO: smarter wait for the db to be created
-docker exec -it $NODENAME /usr/bin/curl -X POST http://admin:$CLIENTADMINPW@127.0.0.1:5984/_replicator -H "Content-Type: application/json" -d '{ "_id": "'$CLIENTNAME'_vaplatform_downstream", "source": "http://'$CLIENTUSER':'$REPLICATORPW'@'$CLUSTERCOORDNODEIP':5984/vaplatformdata", "target": "http://replicator:'$REPLICATORPW'@127.0.0.1:5984/vaplatformdata", "selector": { "clientid": "'$CLIENTNAME'" }, "continuous":  true}'
-docker exec -it $NODENAME /usr/bin/curl -X POST http://admin:$CLIENTADMINPW@127.0.0.1:5984/_replicator -H "Content-Type: application/json" -d '{ "_id": "'$CLIENTNAME'_vaplatform_upstream", "source": "http://replicator:'$REPLICATORPW'@127.0.0.1:5984/vaplatformdata", "target": "http://'$CLIENTUSER':'$REPLICATORPW'@'$CLUSTERCOORDNODEIP':5984/vaplatformdata", "selector": { "clientid": "'$CLIENTNAME'" }, "continuous":  true}'
+docker exec -it $NODENAME /usr/bin/curl -X POST http://admin:$CLIENTADMINPW@127.0.0.1:5984/_replicator -H "Content-Type: application/json" -d '{ "_id": "'$CLIENTNAME'_vaplatform_downstream", "source": "http://'$CLIENTUSER':'$REPLICATORPW'@'$CLUSTERCOORDNODEIP':5984/'$CLIENTDB'", "target": "http://replicator:'$REPLICATORPW'@127.0.0.1:5984/vaplatformdata", "selector": { "clientid": "'$CLIENTNAME'" }, "continuous":  true}'
+docker exec -it $NODENAME /usr/bin/curl -X POST http://admin:$CLIENTADMINPW@127.0.0.1:5984/_replicator -H "Content-Type: application/json" -d '{ "_id": "'$CLIENTNAME'_vaplatform_upstream", "source": "http://replicator:'$REPLICATORPW'@127.0.0.1:5984/vaplatformdata", "target": "http://'$CLIENTUSER':'$REPLICATORPW'@'$CLUSTERCOORDNODEIP':5984/'$CLIENTDB'", "selector": { "clientid": "'$CLIENTNAME'" }, "continuous":  true}'
 
 echo "*** Creating test document ****"
 DOCID=`python3 -c "import uuid,base64;print(base64.urlsafe_b64encode(uuid.uuid4().bytes).decode('ascii'))"`
