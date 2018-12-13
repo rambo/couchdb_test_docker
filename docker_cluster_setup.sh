@@ -19,7 +19,7 @@ HTTP_SECRET=`python3 -c "import uuid,base64;print(base64.urlsafe_b64encode(uuid.
 echo " *** Configure nodes for clustering *** "
 for NODENAME in $NODES
 do
-  NODEIP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $NODENAME`
+  NODEIP=`docker inspect -f '{{.NetworkSettings.Networks.couchdb_cluster.IPAddress}}' $NODENAME`
   echo "-- $NODENAME ($NODEIP)"
   docker exec -it $NODENAME /bin/bash -c "while [ ! -e /opt/couchdb/etc/local.d/docker.ini ]; do sleep 1; done"
   docker exec -it $NODENAME /bin/sed -i.old -e "s/^uuid\s*=\s*.*/uuid = $NEW_UUID/" /opt/couchdb/etc/local.d/docker.ini
@@ -36,12 +36,12 @@ done
 echo " *** Add nodes to cluster *** "
 for NODENAME in $NODES
 do
-  NODEIP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $NODENAME`
+  NODEIP=`docker inspect -f '{{.NetworkSettings.Networks.couchdb_cluster.IPAddress}}' $NODENAME`
   echo "-- $NODENAME ($NODEIP)"
   for OTHERNODE in $( echo $NODES | sed -e "s/$NODENAME//")
   do
     echo "-- $NODENAME ($NODEIP) link to $OTHERNODE ($OHERIP)"
-    OTHERIP=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $OTHERNODE`
+    OTHERIP=`docker inspect -f '{{.NetworkSettings.Networks.couchdb_cluster.IPAddress}}' $OTHERNODE`
     docker exec -it $COORDNODE /usr/bin/curl -X POST -H "Content-Type: application/json" http://admin:$ADMINPW@127.0.0.1:5984/_cluster_setup -d '{"action": "enable_cluster", "bind_address":"0.0.0.0", "username": "admin", "password":"'$ADMINPW'", "port": 5984, "node_count": "3", "remote_node": "'$OTHERIP'", "remote_current_user": "admin", "remote_current_password": "'$ADMINPW'" }'
     docker exec -it $COORDNODE /usr/bin/curl -X POST -H "Content-Type: application/json" http://admin:$ADMINPW@127.0.0.1:5984/_cluster_setup -d '{"action": "add_node", "host":"'$OTHERIP'", "port": 5984, "username": "admin", "password":"'$ADMINPW'"}'
   done
